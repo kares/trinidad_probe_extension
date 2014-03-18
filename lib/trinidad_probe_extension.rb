@@ -6,6 +6,11 @@ module Trinidad
 
       # @override
       def configure(tomcat)
+        if disabled?
+          logger.info "Skipped configuration of probe extension"
+          return
+        end
+
         set_tomcat_class_loader tomcat
         @@tomcat = tomcat
         if self.class.probe_name.nil?
@@ -81,7 +86,7 @@ module Trinidad
       end
 
       def probe_context_name(config, default = '/__probe__')
-        return config.to_s if config.is_a?(String) || config.it_a?(Symbol)
+        return config.to_s if config.is_a?(String) || config.is_a?(Symbol)
         config[:context_name] || config[:context_path] || default
       end
 
@@ -92,6 +97,15 @@ module Trinidad
         if tomcat_loader.nil? || tomcat_loader == Java::JavaLang::ClassLoader.getSystemClassLoader
           tomcat.server.setParentClassLoader JRuby.runtime.jruby_class_loader
         end
+      end
+
+      def disabled?
+        property = Java::JavaLang::System.getProperty('trinidad.extensions.probe')
+        property ? Java::JavaLang::Boolean.parseBoolean(property) : nil
+      end
+
+      def logger
+        org.apache.juli.logging.LogFactory.getLog('org.apache.catalina.startup.Tomcat')
       end
 
       APP_PATH = File.expand_path('../app', File.dirname(__FILE__))
@@ -141,7 +155,8 @@ module Trinidad
             do_deploy!(context) unless EAGER
           end
         rescue => e
-          context.logger.warn "Setting up probe application failed: #{e.inspect}"
+          context.logger.warn "Setting up probe application failed: #{e.inspect}" <<
+                              "\n  #{e.backtrace.join("\n  ")}"
         rescue Java::JavaLang::Exception => e
           context.logger.warn "Setting up probe application failed: ", e
         end
@@ -152,7 +167,9 @@ module Trinidad
           tomcat = ProbeServerExtension.tomcat
 
           dummy_host = org.apache.catalina.Host.impl {}
-          probe_context = tomcat.addWebapp(dummy_host, @probe_path, @probe_name, APP_PATH)
+          # NOTE: due "old" Tomcat compatibility use (host, url, path) :
+          probe_context = tomcat.addWebapp(dummy_host, @probe_path, APP_PATH)
+          probe_context.name = @probe_name if @probe_name
           probe_context.privileged = true # TODO allow tomcat security
           tomcat.host.addChild(probe_context)
 
