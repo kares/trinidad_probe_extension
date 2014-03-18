@@ -1,6 +1,6 @@
 # Trinidad Probe Extension
 
-Advanced manager and monitoring for Trinidad, based on [PSI Probe][0].
+Advanced manager and monitor using [PSI Probe][0], packaged for Trinidad.
 
 
 ## Install
@@ -36,5 +36,6 @@ Like all extensions set it up in the configuration file (e.g. *trinidad.yml*).
 ## Copyright
 
 Copyright (c) 2014 [Karol Bucek](http://kares.org).
+See LICENSE (http://www.gnu.org/licenses/gpl-2.0.html) for details.
 
 [0]: https://code.google.com/p/psi-probe/
